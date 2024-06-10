@@ -319,10 +319,11 @@
 - app.py:
 ```python
 from app_init import app
-import users_controller
+import permission_controller
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000, host="127.0.0.1")
+
 ```
 
 - app_init.py:
@@ -332,17 +333,17 @@ from flask import Flask
 app = Flask(__name__)
 ```
 
-- user_module.py:
+- permission_module.py:
 ```python
 import mysql.connector
 
 
-class Users:
+class Permission:
     def __init__(self):
         try:
             self.host = 'localhost'
             self.user = 'root'
-            self.password = 'root123'
+            self.password = '12345'
             self.db = 'mydb'
 
             self.connection = mysql.connector.connect(host=self.host,
@@ -355,126 +356,77 @@ class Users:
         except mysql.connector.Error as err:
             print("Failed to connect to database:", err)
 
-    def get_all_users(self):
+    def get_all_permission(self):
         try:
-            self.cursor.execute("select * from user")
-            users = self.cursor.fetchall()
+            self.cursor.execute("select * from mydb.`permission`")
+            permission = self.cursor.fetchall()
 
             if self.cursor.rowcount == 0:
-                return {"message": "No users", "error": "Not Found", "status_code": 404}
+                return {"message": "No Permission", "error": "Not Found", "status_code": 404}
 
-            return users
+            return permission
         except mysql.connector.Error as err:
-            return {'message': 'Failed to get all users', 'error': str(err), 'status_code': 500}
+            return {'message': 'Failed to get all Permission', 'error': str(err), 'status_code': 500}
 
-    def get_user_by_id(self, user_id):
+    def get_permission_by_id(self, per_id):
         try:
-            user_id = int(user_id)
-            self.cursor.execute("select * from user where `User.id` = %s", (user_id,))
-            user = self.cursor.fetchone()
+            per_id = int(per_id)
+            self.cursor.execute("select * from mydb.`permission` where `Permission.id` = %s", (per_id,))
+            permission = self.cursor.fetchone()
 
             if self.cursor.rowcount == 0:
-                return {"message": f"No user with id {user_id}", "error": "Not Found", "status_code": 404}
+                return {"message": f"No permission with id {per_id}", "error": "Not Found", "status_code": 404}
 
-            return user
+            return permission
         except mysql.connector.Error as err:
-            return {'message': 'Failed to get user', 'error': str(err), 'status_code': 500}
+            return {'message': 'Failed to get permission', 'error': str(err), 'status_code': 500}
         except ValueError:
-            return {"message": "Invalid user id", "error": "Bad Request", "status_code": 400}
+            return {"message": "Invalid permission id", "error": "Bad Request", "status_code": 400}
 
-    def add_user(self, info):
+
+    def delete_permission(self, per_id):
         try:
-            self.cursor.execute('start transaction')
-            self.cursor.execute(f"insert into user (`User.id`, `User.username`, `User.email`, `User.password`, "
-                                f"`User.firstname`, `User.lastname`, `Usercol`, `Role_Role.id`) "
-                                f"values {tuple([i for i in info.values()])}")
-            self.connection.commit()
-
-            if self.cursor.rowcount > 0:
-                return {"message": "User added to database", "status_code": 200}
-            else:
-                return {"message": "User was not added to database", "error": "Not Acceptable", "status_code": 406}
-        except mysql.connector.Error as err:
-            self.connection.rollback()
-            return {'message': 'Failed to add user', 'error': str(err), 'status_code': 500}
-
-    def delete_user(self, user_id):
-        try:
-            user_id = int(user_id)
+            per_id = int(per_id)
             self.cursor.execute('start transaction')
             rows_deleted = 0
-            self.cursor.execute("delete from user where `User.id` = %s", (user_id,))
+            self.cursor.execute("delete from mydb.`grant_ permission` where `Permission_Permission.id` = %s", (per_id,))
             rows_deleted += self.cursor.rowcount
-            self.cursor.execute("delete from request where `User_User.id` = %s", (user_id,))
-            rows_deleted += self.cursor.rowcount
-            self.cursor.execute("delete from access where `User_User.id` = %s", (user_id,))
+            self.cursor.execute("delete from mydb.`permission` where `Permission.id` = %s", (per_id,))
             rows_deleted += self.cursor.rowcount
             self.connection.commit()
             if rows_deleted > 0:
-                return {"message": f"User {user_id} deleted from database", "status_code": 204}
+                return {"message": f"Permission {per_id} deleted from database", "status_code": 204}
             else:
-                return {"message": f"User {user_id} was not deleted from database",
+                return {"message": f"Permission {per_id} was not deleted from database",
                         "error": "Not Found", "status_code": 404}
         except mysql.connector.Error as err:
             self.connection.rollback()
-            return {'message': 'Failed to delete user', 'error': str(err), 'status_code': 500}
+            return {'message': 'Failed to delete permission', 'error': str(err), 'status_code': 500}
         except ValueError:
-            return {"message": "Invalid user id", "error": "Bad Request", "status_code": 400}
-
-    def update_user(self, user_id, info):
-        try:
-            user_id = int(user_id)
-            self.cursor.execute('start transaction')
-            updated_rows = 0
-            for i in info.items():
-                self.cursor.execute(f"update user set `{i[0]}` = '{i[1]}' where `User.id` = {user_id}")
-                updated_rows += 1
-            self.connection.commit()
-
-            if updated_rows > 0:
-                return {"message": f"User {user_id} updated in database", "status_code": 200}
-            else:
-                return {"message": f"User {user_id} was not updated in database",
-                        "error": "Not Acceptable", "status_code": 406}
-        except mysql.connector.Error as err:
-            self.connection.rollback()
-            return {'message': 'Failed to update user', 'error': str(err), 'status_code': 500}
-        except ValueError:
-            return {"message": "Invalid user id", "error": "Bad Request", "status_code": 400}
+            return {"message": "Invalid permission id", "error": "Bad Request", "status_code": 400}
 ```
 
-- user_controller.py:
+- permission_controller.py:
 ```python
 from flask import request, jsonify
-from user_model import Users
+from permission_module import Permission
 from app_init import app
 
-users = Users()
+permissions = Permission()
 
 
-@app.route("/users", methods=['GET'])
-def get_all_users():
-    return jsonify(users.get_all_users())
+@app.route("/permission", methods=['GET'])
+def get_all_permission():
+    return jsonify(permissions.get_all_permission())
 
 
-@app.route("/user/<user_id>", methods=['GET'])
-def get_user_by_id(user_id):
-    return jsonify(users.get_user_by_id(user_id))
+@app.route("/permission/<permission_id>", methods=['GET'])
+def get_permission_by_id(permission_id):
+    return jsonify(permissions.get_permission_by_id(permission_id))
 
 
-@app.route("/users/add", methods=['POST'])
-def add_user():
-    url_params = request.args.to_dict()
-    return jsonify(users.add_user(url_params))
+@app.route("/permission/delete/<permission_id>", methods=['DELETE'])
+def delete_permission(permission_id):
+    return jsonify(permissions.delete_permission(permission_id))
 
-
-@app.route("/users/delete/<user_id>", methods=['DELETE'])
-def delete_user(user_id):
-    return jsonify(users.delete_user(user_id))
-
-
-@app.route("/users/update/<user_id>", methods=['PUT'])
-def update_user(user_id):
-    url_params = request.args.to_dict()
-    return jsonify(users.update_user(user_id, url_params))
 ```
